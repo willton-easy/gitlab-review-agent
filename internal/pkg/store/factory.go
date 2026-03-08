@@ -6,11 +6,11 @@ import (
 	"fmt"
 	"io"
 
-	"ai-review-agent/internal/config"
-	"ai-review-agent/internal/pkg/store/file"
-	"ai-review-agent/internal/pkg/store/postgres"
-	"ai-review-agent/internal/pkg/store/sqlite"
-	"ai-review-agent/internal/shared"
+	"github.com/antlss/gitlab-review-agent/internal/config"
+	"github.com/antlss/gitlab-review-agent/internal/pkg/store/file"
+	"github.com/antlss/gitlab-review-agent/internal/pkg/store/postgres"
+	"github.com/antlss/gitlab-review-agent/internal/pkg/store/sqlite"
+	"github.com/antlss/gitlab-review-agent/internal/shared"
 )
 
 // Stores aggregates all store instances and a Close function.

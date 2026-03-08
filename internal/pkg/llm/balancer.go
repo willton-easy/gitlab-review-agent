@@ -7,7 +7,7 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"ai-review-agent/internal/shared"
+	"github.com/antlss/gitlab-review-agent/internal/shared"
 )
 
 // BalancedClient distributes LLM calls across multiple clients of the same

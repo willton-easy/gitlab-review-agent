@@ -8,8 +8,8 @@ import (
 	"strings"
 	"sync"
 
-	"ai-review-agent/internal/config"
-	"ai-review-agent/internal/shared"
+	"github.com/antlss/gitlab-review-agent/internal/config"
+	"github.com/antlss/gitlab-review-agent/internal/shared"
 )
 
 // NoteAccumulator stores notes saved by the agent during a review session.

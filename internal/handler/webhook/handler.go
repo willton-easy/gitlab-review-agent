@@ -12,8 +12,8 @@ import (
 
 	"github.com/google/uuid"
 
-	"ai-review-agent/internal/pkg/queue"
-	"ai-review-agent/internal/shared"
+	"github.com/antlss/gitlab-review-agent/internal/pkg/queue"
+	"github.com/antlss/gitlab-review-agent/internal/shared"
 )
 
 type Handler struct {

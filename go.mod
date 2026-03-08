@@ -1,4 +1,4 @@
-module ai-review-agent
+module github.com/antlss/gitlab-review-agent
 
 go 1.25.5
 

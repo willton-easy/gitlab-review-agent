@@ -3,7 +3,7 @@ package review
 import (
 	"testing"
 
-	"ai-review-agent/internal/shared"
+	"github.com/antlss/gitlab-review-agent/internal/shared"
 )
 
 func TestParseDirectJSON(t *testing.T) {

@@ -14,15 +14,15 @@ import (
 	"github.com/joho/godotenv"
 	"github.com/spf13/cobra"
 
-	"ai-review-agent/internal/config"
-	"ai-review-agent/internal/core/agents/reviewer"
-	"ai-review-agent/internal/core/prompt"
-	"ai-review-agent/internal/core/review"
-	"ai-review-agent/internal/pkg/git"
-	"ai-review-agent/internal/pkg/gitlab"
-	"ai-review-agent/internal/pkg/logger"
-	"ai-review-agent/internal/pkg/store"
-	"ai-review-agent/internal/shared"
+	"github.com/antlss/gitlab-review-agent/internal/config"
+	"github.com/antlss/gitlab-review-agent/internal/core/agents/reviewer"
+	"github.com/antlss/gitlab-review-agent/internal/core/prompt"
+	"github.com/antlss/gitlab-review-agent/internal/core/review"
+	"github.com/antlss/gitlab-review-agent/internal/pkg/git"
+	"github.com/antlss/gitlab-review-agent/internal/pkg/gitlab"
+	"github.com/antlss/gitlab-review-agent/internal/pkg/logger"
+	"github.com/antlss/gitlab-review-agent/internal/pkg/store"
+	"github.com/antlss/gitlab-review-agent/internal/shared"
 )
 
 func main() {

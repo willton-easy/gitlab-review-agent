@@ -5,8 +5,8 @@ import (
 	"log/slog"
 	"strings"
 
-	"ai-review-agent/internal/config"
-	"ai-review-agent/internal/shared"
+	"github.com/antlss/gitlab-review-agent/internal/config"
+	"github.com/antlss/gitlab-review-agent/internal/shared"
 )
 
 // NewClient creates a single LLM client based on provider and model name.

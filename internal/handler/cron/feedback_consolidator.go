@@ -4,8 +4,8 @@ import (
 	"context"
 	"log/slog"
 
-	"ai-review-agent/internal/core/feedback"
-	"ai-review-agent/internal/shared"
+	"github.com/antlss/gitlab-review-agent/internal/core/feedback"
+	"github.com/antlss/gitlab-review-agent/internal/shared"
 )
 
 type FeedbackConsolidatorJob struct {

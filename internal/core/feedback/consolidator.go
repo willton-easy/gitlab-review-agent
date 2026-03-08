@@ -8,8 +8,8 @@ import (
 
 	"github.com/google/uuid"
 
-	"ai-review-agent/internal/core/prompt"
-	"ai-review-agent/internal/shared"
+	"github.com/antlss/gitlab-review-agent/internal/core/prompt"
+	"github.com/antlss/gitlab-review-agent/internal/shared"
 )
 
 // Consolidator merges accumulated feedbacks into a custom_prompt.

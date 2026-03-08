@@ -50,8 +50,8 @@ Most open-source AI reviewers simply pipe your git diff into an LLM and spit out
 ### Installation & Config
 
 ```bash
-git clone https://github.com/your-org/ai-review-agent.git
-cd ai-review-agent
+git clone https://github.com/antlss/gitlab-review-agent.git
+cd gitlab-review-agent
 
 # Build the server and CLI binaries
 go build -o server ./cmd/server

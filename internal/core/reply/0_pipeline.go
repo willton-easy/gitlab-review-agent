@@ -10,11 +10,11 @@ import (
 	"path/filepath"
 	"strings"
 
-	"ai-review-agent/internal/config"
-	"ai-review-agent/internal/core/agents/replier"
-	"ai-review-agent/internal/core/prompt"
-	"ai-review-agent/internal/pkg/llm"
-	"ai-review-agent/internal/shared"
+	"github.com/antlss/gitlab-review-agent/internal/config"
+	"github.com/antlss/gitlab-review-agent/internal/core/agents/replier"
+	"github.com/antlss/gitlab-review-agent/internal/core/prompt"
+	"github.com/antlss/gitlab-review-agent/internal/pkg/llm"
+	"github.com/antlss/gitlab-review-agent/internal/shared"
 )
 
 type Pipeline struct {

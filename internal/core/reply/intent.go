@@ -1,7 +1,7 @@
 package reply
 
 import (
-	"ai-review-agent/internal/shared"
+	"github.com/antlss/gitlab-review-agent/internal/shared"
 	"strings"
 )
 

@@ -6,7 +6,7 @@ import (
 	"regexp"
 	"strings"
 
-	"ai-review-agent/internal/shared"
+	"github.com/antlss/gitlab-review-agent/internal/shared"
 )
 
 type ParsedOutput struct {

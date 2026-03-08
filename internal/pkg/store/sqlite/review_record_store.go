@@ -1,0 +1,62 @@
+package sqlite
+
+import (
+	"context"
+	"database/sql"
+	"errors"
+	"fmt"
+	"time"
+
+	"ai-review-agent/internal/shared"
+
+	"github.com/google/uuid"
+	"github.com/jmoiron/sqlx"
+)
+
+type ReviewRecordStore struct {
+	db *sqlx.DB
+}
+
+func NewReviewRecordStore(db *sqlx.DB) *ReviewRecordStore {
+	return &ReviewRecordStore{db: db}
+}
+
+func (s *ReviewRecordStore) GetLastCompleted(ctx context.Context, projectID, mrIID int64) (*shared.ReviewRecord, error) {
+	var record shared.ReviewRecord
+	err := s.db.GetContext(ctx, &record, `
+		SELECT * FROM review_records
+		WHERE gitlab_project_id = ? AND mr_iid = ?`,
+		projectID, mrIID)
+	if errors.Is(err, sql.ErrNoRows) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("get last review record: %w", err)
+	}
+	return &record, nil
+}
+
+func (s *ReviewRecordStore) Upsert(ctx context.Context, record *shared.ReviewRecord) error {
+	record.ID = uuid.New()
+	record.CreatedAt = time.Now()
+
+	_, err := s.db.ExecContext(ctx, `
+		INSERT INTO review_records (
+			id, gitlab_project_id, mr_iid, review_job_id,
+			head_sha, reviewed_files, comments_posted, created_at
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+		ON CONFLICT(gitlab_project_id, mr_iid) DO UPDATE SET
+			review_job_id = excluded.review_job_id,
+			head_sha = excluded.head_sha,
+			reviewed_files = excluded.reviewed_files,
+			comments_posted = excluded.comments_posted,
+			created_at = excluded.created_at`,
+		record.ID.String(), record.GitLabProjectID, record.MrIID,
+		record.ReviewJobID.String(), record.HeadSHA,
+		string(record.ReviewedFiles), record.CommentsPosted,
+		record.CreatedAt.Format(time.RFC3339))
+	if err != nil {
+		return fmt.Errorf("upsert review record: %w", err)
+	}
+	return nil
+}

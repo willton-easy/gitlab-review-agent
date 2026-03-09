@@ -62,7 +62,6 @@ func (s *RepositorySettingsStore) GetOrCreate(_ context.Context, projectID int64
 		ID:              uuid.New(),
 		GitLabProjectID: projectID,
 		ProjectPath:     projectPath,
-		ReviewEnabled:   true,
 		CreatedAt:       now,
 		UpdatedAt:       now,
 	}
@@ -156,7 +155,7 @@ func (s *RepositorySettingsStore) ListEnabled(_ context.Context) ([]*shared.Repo
 		if err := s.b.readJSON(f, &rs); err != nil {
 			continue
 		}
-		if rs.ReviewEnabled && !rs.IsArchived {
+		if !rs.IsArchived {
 			results = append(results, &rs)
 		}
 	}

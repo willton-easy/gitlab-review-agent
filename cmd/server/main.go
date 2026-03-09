@@ -121,14 +121,15 @@ func main() {
 	r.Use(middleware.RealIP)
 
 	webhookHandler := webhook.NewHandler(webhook.HandlerDeps{
-		WebhookSecret:  cfg.GitLab.WebhookSecret,
-		BotUserID:      cfg.GitLab.BotUserID,
-		RepoSettings:   stores.RepoSettings,
-		ReviewJobStore: stores.ReviewJobs,
-		ReplyJobStore:  stores.ReplyJobs,
-		GitLabClient:   gitlabClient,
-		Queue:          jobQueue,
-		ServerCtx:      ctx,
+		WebhookSecret:      cfg.GitLab.WebhookSecret,
+		BotUserID:          cfg.GitLab.BotUserID,
+		ReviewTriggerLabel: cfg.Review.TriggerLabel,
+		RepoSettings:       stores.RepoSettings,
+		ReviewJobStore:     stores.ReviewJobs,
+		ReplyJobStore:      stores.ReplyJobs,
+		GitLabClient:       gitlabClient,
+		Queue:              jobQueue,
+		ServerCtx:          ctx,
 	})
 
 	r.Post("/webhook/gitlab", webhookHandler.HandleGitLabEvent)

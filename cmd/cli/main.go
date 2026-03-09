@@ -136,7 +136,7 @@ func reviewCmd() *cobra.Command {
 			case shared.ReviewJobStatusFailed, shared.ReviewJobStatusParseFailed:
 				fmt.Printf("\nFailed: %s\n", shared.DerefStr(updatedJob.ErrorMessage))
 				return nil
-			case shared.ReviewJobStatusSkippedSize, shared.ReviewJobStatusSkippedDisabled:
+			case shared.ReviewJobStatusSkippedSize:
 				fmt.Printf("\nSkipped: %s\n", updatedJob.Status)
 				return nil
 			}

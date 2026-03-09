@@ -74,6 +74,7 @@ type ReviewConfig struct {
 	PreloadDiffThreshold int    // max file count to pre-inject ALL diffs into user message (default 20)
 	PreloadDiffMaxKB     int    // max total KB of pre-injected diff content (default 100)
 	ResponseLanguage     string // "en" | "vi" | "ja" — language for AI-generated GitLab comments/replies
+	TriggerLabel         string // MR label that triggers review (default "ai-review")
 }
 
 type ToolConfig struct {
@@ -186,6 +187,7 @@ func Load() (*Config, error) {
 	cfg.Review.PreloadDiffThreshold = envIntOrDefault("REVIEW_PRELOAD_DIFF_THRESHOLD", 20)
 	cfg.Review.PreloadDiffMaxKB = envIntOrDefault("REVIEW_PRELOAD_DIFF_MAX_KB", 100)
 	cfg.Review.ResponseLanguage = envOrDefault("AI_RESPONSE_LANGUAGE", "en")
+	cfg.Review.TriggerLabel = envOrDefault("REVIEW_TRIGGER_LABEL", "ai-review")
 
 	cfg.Tool.ReadFileMaxKB = envIntOrDefault("TOOL_READ_FILE_MAX_KB", 40)
 	cfg.Tool.SearchMaxResults = envIntOrDefault("TOOL_SEARCH_MAX_RESULTS", 50)

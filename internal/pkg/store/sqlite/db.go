@@ -14,7 +14,6 @@ CREATE TABLE IF NOT EXISTS repository_settings (
     id                  TEXT PRIMARY KEY,
     gitlab_project_id   INTEGER NOT NULL UNIQUE,
     project_path        TEXT NOT NULL,
-    review_enabled      INTEGER NOT NULL DEFAULT 0,
     model_override      TEXT,
     language            TEXT,
     framework           TEXT,

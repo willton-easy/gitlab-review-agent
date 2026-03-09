@@ -17,13 +17,14 @@ import (
 )
 
 type Handler struct {
-	webhookSecret  string
-	botUserID      int64
-	repoSettings   shared.RepositorySettingsStore
-	reviewJobStore shared.ReviewJobStore
-	replyJobStore  shared.ReplyJobStore
-	gitlabClient   shared.GitLabClient
-	queue          *queue.Queue
+	webhookSecret      string
+	botUserID          int64
+	reviewTriggerLabel string
+	repoSettings       shared.RepositorySettingsStore
+	reviewJobStore     shared.ReviewJobStore
+	replyJobStore      shared.ReplyJobStore
+	gitlabClient       shared.GitLabClient
+	queue              *queue.Queue
 	// serverCtx is cancelled when the server begins shutdown, bounding all
 	// background goroutines to the server lifecycle.
 	serverCtx context.Context
@@ -31,13 +32,14 @@ type Handler struct {
 }
 
 type HandlerDeps struct {
-	WebhookSecret  string
-	BotUserID      int64
-	RepoSettings   shared.RepositorySettingsStore
-	ReviewJobStore shared.ReviewJobStore
-	ReplyJobStore  shared.ReplyJobStore
-	GitLabClient   shared.GitLabClient
-	Queue          *queue.Queue
+	WebhookSecret      string
+	BotUserID          int64
+	ReviewTriggerLabel string
+	RepoSettings       shared.RepositorySettingsStore
+	ReviewJobStore     shared.ReviewJobStore
+	ReplyJobStore      shared.ReplyJobStore
+	GitLabClient       shared.GitLabClient
+	Queue              *queue.Queue
 	// ServerCtx should be a context cancelled when the server shuts down.
 	ServerCtx context.Context
 }
@@ -48,14 +50,15 @@ func NewHandler(deps HandlerDeps) *Handler {
 		ctx = context.Background()
 	}
 	return &Handler{
-		webhookSecret:  deps.WebhookSecret,
-		botUserID:      deps.BotUserID,
-		repoSettings:   deps.RepoSettings,
-		reviewJobStore: deps.ReviewJobStore,
-		replyJobStore:  deps.ReplyJobStore,
-		gitlabClient:   deps.GitLabClient,
-		queue:          deps.Queue,
-		serverCtx:      ctx,
+		webhookSecret:      deps.WebhookSecret,
+		botUserID:          deps.BotUserID,
+		reviewTriggerLabel: deps.ReviewTriggerLabel,
+		repoSettings:       deps.RepoSettings,
+		reviewJobStore:     deps.ReviewJobStore,
+		replyJobStore:      deps.ReplyJobStore,
+		gitlabClient:       deps.GitLabClient,
+		queue:              deps.Queue,
+		serverCtx:          ctx,
 	}
 }
 
@@ -128,6 +131,9 @@ type mrEventPayload struct {
 		} `json:"last_commit"`
 		OldRev string `json:"oldrev"`
 	} `json:"object_attributes"`
+	Labels []struct {
+		Title string `json:"title"`
+	} `json:"labels"`
 }
 
 func (h *Handler) handleMREvent(ctx context.Context, body []byte) {
@@ -144,12 +150,14 @@ func (h *Handler) handleMREvent(ctx context.Context, body []byte) {
 		return
 	}
 
+	// Check if the MR has the review trigger label
+	if !h.hasReviewLabel(payload.Labels) {
+		return
+	}
+
 	settings, err := h.repoSettings.GetOrCreate(ctx, projectID, payload.Project.PathWithNS)
 	if err != nil {
 		slog.Error("get or create repo settings", "project_id", projectID, "error", err)
-		return
-	}
-	if !settings.ReviewEnabled {
 		return
 	}
 
@@ -259,11 +267,6 @@ func (h *Handler) handleNoteEvent(ctx context.Context, body []byte) {
 		return
 	}
 
-	settings, err := h.repoSettings.GetOrCreate(ctx, projectID, payload.Project.PathWithNS)
-	if err != nil || !settings.ReviewEnabled {
-		return
-	}
-
 	var filePath *string
 	var lineNum *int
 	if firstNote.Position != nil {
@@ -308,4 +311,15 @@ func (h *Handler) handleNoteEvent(ctx context.Context, body []byte) {
 
 func (h *Handler) validateSignature(token string) bool {
 	return hmac.Equal([]byte(token), []byte(h.webhookSecret))
+}
+
+func (h *Handler) hasReviewLabel(labels []struct {
+	Title string `json:"title"`
+}) bool {
+	for _, l := range labels {
+		if l.Title == h.reviewTriggerLabel {
+			return true
+		}
+	}
+	return false
 }

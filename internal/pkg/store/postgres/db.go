@@ -14,7 +14,7 @@ const postgresSchema = `
 DO $$ BEGIN
     CREATE TYPE review_job_status AS ENUM (
         'PENDING', 'REVIEWING', 'POSTING', 'COMPLETED',
-        'FAILED', 'PARSE_FAILED', 'SKIPPED_SIZE', 'SKIPPED_DISABLED'
+        'FAILED', 'PARSE_FAILED', 'SKIPPED_SIZE'
     );
 EXCEPTION WHEN duplicate_object THEN NULL;
 END $$;
@@ -39,7 +39,6 @@ CREATE TABLE IF NOT EXISTS repository_settings (
     id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     gitlab_project_id   BIGINT NOT NULL UNIQUE,
     project_path        VARCHAR(500) NOT NULL,
-    review_enabled      BOOLEAN NOT NULL DEFAULT FALSE,
     model_override      VARCHAR(50),
     language            VARCHAR(50),
     framework           VARCHAR(100),
@@ -51,7 +50,6 @@ CREATE TABLE IF NOT EXISTS repository_settings (
     updated_at          TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 CREATE INDEX IF NOT EXISTS idx_repo_settings_project_id ON repository_settings(gitlab_project_id);
-CREATE INDEX IF NOT EXISTS idx_repo_settings_review_enabled ON repository_settings(review_enabled) WHERE review_enabled = TRUE;
 
 CREATE TABLE IF NOT EXISTS review_jobs (
     id                        UUID PRIMARY KEY DEFAULT gen_random_uuid(),

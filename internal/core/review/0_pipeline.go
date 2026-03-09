@@ -63,14 +63,9 @@ func (p *Pipeline) Execute(ctx context.Context, job *shared.ReviewJob) error {
 		return fmt.Errorf("update status: %w", err)
 	}
 
-	// Pre-flight: check if review is enabled for this repo
 	settings, err := p.repoSettings.GetByProjectID(ctx, job.GitLabProjectID)
 	if err != nil {
 		return p.failJob(ctx, job, "get repo settings: "+err.Error())
-	}
-	if settings != nil && !settings.ReviewEnabled {
-		log.Info("review skipped as disabled in settings")
-		return p.jobStore.UpdateStatus(ctx, job.ID, shared.ReviewJobStatusSkippedDisabled, nil)
 	}
 	projectPath := ""
 	if settings != nil {

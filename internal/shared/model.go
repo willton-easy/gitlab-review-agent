@@ -12,7 +12,6 @@ type RepositorySettings struct {
 	ID              uuid.UUID `db:"id" json:"id"`
 	GitLabProjectID int64     `db:"gitlab_project_id" json:"gitlabProjectId"`
 	ProjectPath     string    `db:"project_path" json:"projectPath"`
-	ReviewEnabled   bool      `db:"review_enabled" json:"reviewEnabled"`
 	ModelOverride   *string   `db:"model_override" json:"modelOverride,omitempty"`
 	Language        *string   `db:"language" json:"language,omitempty"`
 	Framework       *string   `db:"framework" json:"framework,omitempty"`

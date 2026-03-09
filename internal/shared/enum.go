@@ -11,8 +11,7 @@ const (
 	ReviewJobStatusCompleted       ReviewJobStatus = "COMPLETED"
 	ReviewJobStatusFailed          ReviewJobStatus = "FAILED"
 	ReviewJobStatusParseFailed     ReviewJobStatus = "PARSE_FAILED"
-	ReviewJobStatusSkippedSize     ReviewJobStatus = "SKIPPED_SIZE"
-	ReviewJobStatusSkippedDisabled ReviewJobStatus = "SKIPPED_DISABLED"
+	ReviewJobStatusSkippedSize ReviewJobStatus = "SKIPPED_SIZE"
 )
 
 type ReplyJobStatus string

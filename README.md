@@ -26,7 +26,7 @@ Most open-source AI reviewers simply pipe your git diff into an LLM and spit out
 
 ## 🔍 How It Works: The "Deep Dive" Review Flow
 
-1. **Trigger & Initialization**: A webhook catches a Merge Request event (create/update) or a manual CLI trigger is fired. A job is queued asynchronously. The specific repository config (frameworks, model overrides) is loaded.
+1. **Trigger & Initialization**: A webhook catches a Merge Request event (create/update). The agent checks whether the MR carries the configured **review trigger label** (default: `ai-review`). If the label is present, a job is queued asynchronously and the specific repository config (frameworks, model overrides) is loaded. A manual CLI trigger skips the label check and always proceeds.
 2. **Smart Git Synchronization**: The agent acquires a lock and shallow-fetches the target branch. It calculates a smart **Base SHA** to only process _incremental_ new commits if the MR was reviewed previously, preventing noisy duplicate comments.
 3. **Risk Scoring & Parsing**: Modifed files are scored for risk. Highly modified or complex files are pre-loaded directly into the LLM context. Massive PRs (>150 files) are safely truncated and sampled by risk to protect your context window.
 4. **Context Gathering (The Secret Sauce)**: External data is fetched:
@@ -94,6 +94,19 @@ Start the webhook handler and background worker pool:
 ```
 
 _Point your GitLab Project Webhook to `http://<your-server>:8080/webhook/gitlab`._
+
+### Label-Based Review Triggering
+
+By default the agent only reviews Merge Requests that carry the **`ai-review`** label. Add the label to an MR in GitLab and the next open/update webhook event will trigger a review automatically.
+
+You can change the label name via the `REVIEW_TRIGGER_LABEL` environment variable:
+
+```bash
+# .env
+REVIEW_TRIGGER_LABEL=ai-review   # default — change to any GitLab label you prefer
+```
+
+> **Note:** The CLI (`./cli review`) bypasses the label check entirely — it always performs a review as long as the configured GitLab token has access to the target project.
 
 ### Running the CLI (Interactive Dry-Run Mode)
 

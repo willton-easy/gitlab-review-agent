@@ -48,16 +48,15 @@ func (s *RepositorySettingsStore) GetOrCreate(ctx context.Context, projectID int
 		ID:              uuid.New(),
 		GitLabProjectID: projectID,
 		ProjectPath:     projectPath,
-		ReviewEnabled:   true,
 		CreatedAt:       now,
 		UpdatedAt:       now,
 	}
 
 	_, err = s.db.ExecContext(ctx, `
 		INSERT OR IGNORE INTO repository_settings (
-			id, gitlab_project_id, project_path, review_enabled,
+			id, gitlab_project_id, project_path,
 			created_at, updated_at
-		) VALUES (?, ?, ?, 1, ?, ?)`,
+		) VALUES (?, ?, ?, ?, ?)`,
 		settings.ID.String(), projectID, projectPath,
 		now.Format(time.RFC3339), now.Format(time.RFC3339))
 	if err != nil {
@@ -74,16 +73,16 @@ func (s *RepositorySettingsStore) Upsert(ctx context.Context, settings *shared.R
 	}
 	_, err := s.db.ExecContext(ctx, `
 		INSERT INTO repository_settings (
-			id, gitlab_project_id, project_path, review_enabled,
+			id, gitlab_project_id, project_path,
 			model_override, language, framework, custom_prompt,
 			exclude_patterns, created_at, updated_at
-		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+		) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 		ON CONFLICT(gitlab_project_id) DO UPDATE SET
 			project_path = excluded.project_path,
 			is_archived = 0,
 			updated_at = ?`,
 		settings.ID.String(), settings.GitLabProjectID, settings.ProjectPath,
-		shared.BoolToInt(settings.ReviewEnabled), settings.ModelOverride, settings.Language,
+		settings.ModelOverride, settings.Language,
 		settings.Framework, settings.CustomPrompt, settings.ExcludePatterns,
 		now.Format(time.RFC3339), now.Format(time.RFC3339), now.Format(time.RFC3339))
 	if err != nil {
@@ -125,7 +124,7 @@ func (s *RepositorySettingsStore) UpdateCustomPrompt(ctx context.Context, projec
 func (s *RepositorySettingsStore) ListEnabled(ctx context.Context) ([]*shared.RepositorySettings, error) {
 	var results []*shared.RepositorySettings
 	err := s.db.SelectContext(ctx, &results,
-		`SELECT * FROM repository_settings WHERE review_enabled = 1 AND is_archived = 0`)
+		`SELECT * FROM repository_settings WHERE is_archived = 0`)
 	if err != nil {
 		return nil, fmt.Errorf("list enabled repos: %w", err)
 	}

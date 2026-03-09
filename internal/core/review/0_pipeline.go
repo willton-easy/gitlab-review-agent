@@ -8,6 +8,7 @@ import (
 	"log/slog"
 	"sort"
 	"strings"
+	"sync"
 
 	"github.com/antlss/gitlab-review-agent/internal/config"
 	"github.com/antlss/gitlab-review-agent/internal/core/agents/reviewer"
@@ -137,72 +138,21 @@ func (p *Pipeline) Execute(ctx context.Context, job *shared.ReviewJob) error {
 	}
 	p.jobStore.UpdateModelUsed(ctx, job.ID, llmClient.ModelName())
 
-	repoPath := p.gitManager.RepoPath(job.GitLabProjectID)
-	toolCfg := p.cfg.Tool
-	toolCfg.BaseSHA = baseSHA
-	toolCfg.HeadSHA = job.HeadSHA
-	registry := tools.NewRegistry(repoPath, filteredFiles, toolCfg)
-
-	// Pre-load HIGH-risk diffs into user message; for small MRs, pre-load all files
-	var highRiskFiles, otherFiles []shared.DiffFile
-	for _, f := range filteredFiles {
-		if f.RiskTier == shared.RiskHigh {
-			highRiskFiles = append(highRiskFiles, f)
-		} else {
-			otherFiles = append(otherFiles, f)
-		}
-	}
-
-	preloadMaxBytes := p.cfg.Review.PreloadDiffMaxKB * 1024
-	highContent, highIncluded := p.computePreloadedDiffs(ctx, job.GitLabProjectID, highRiskFiles, baseSHA, job.HeadSHA, preloadMaxBytes)
-	preloadedDiffs := highContent
-	allDiffsPreloaded := false
-
-	if len(filteredFiles) <= p.cfg.Review.PreloadDiffThreshold {
-		remaining := preloadMaxBytes - len(preloadedDiffs)
-		otherContent, otherIncluded := p.computePreloadedDiffs(ctx, job.GitLabProjectID, otherFiles, baseSHA, job.HeadSHA, remaining)
-		preloadedDiffs += otherContent
-		allDiffsPreloaded = (highIncluded + otherIncluded) == len(filteredFiles)
-	}
-
-	maxIter, softWarn := CalculateBudgetWithPreload(len(filteredFiles), preloadedDiffs != "")
-	log.Info("diff preload complete",
-		"preloaded_bytes", len(preloadedDiffs),
-		"all_diffs_preloaded", allDiffsPreloaded,
-		"max_iterations", maxIter,
-	)
-
-	log.Info("starting agent loop", "max_iterations", maxIter, "files", len(filteredFiles))
-	diffStat := formatDiffStat(filteredFiles)
 	lang := prompt.ParseLanguage(p.cfg.Review.ResponseLanguage)
-	agentInput := reviewer.AgentInput{
-		Job:                  job,
-		ReviewCtx:            reviewCtx,
-		FilteredFiles:        filteredFiles,
-		DiffStatFormatted:    diffStat,
-		MaxIterations:        maxIter,
-		SoftWarnAt:           softWarn,
-		CompressionThreshold: p.cfg.LLM.CompressionThreshold,
-		Registry:             registry,
-		LLMClient:            llmClient,
-		PreloadedDiffs:       preloadedDiffs,
-		AllDiffsPreloaded:    allDiffsPreloaded,
-		ResponseLanguage:     lang,
-	}
 
-	result, err := p.agent.Run(ctx, agentInput)
+	// Decide: single-pass vs chunked map-reduce review
+	var aggregated *aggregatedResult
+	if len(filteredFiles) > p.cfg.Review.ChunkThreshold {
+		aggregated, err = p.executeChunked(ctx, job, filteredFiles, reviewCtx, llmClient, baseSHA, lang)
+	} else {
+		aggregated, err = p.executeSingle(ctx, job, filteredFiles, reviewCtx, llmClient, baseSHA, lang)
+	}
 	if err != nil {
 		return p.failJob(ctx, job, "agent: "+err.Error())
 	}
 
-	parsed, err := Parse(result.RawOutput)
-	if err != nil {
-		p.jobStore.UpdateAIOutput(ctx, job.ID, result.RawOutput, nil, result.IterationsUsed, result.TokensEstimated)
-		return p.jobStore.UpdateStatus(ctx, job.ID, shared.ReviewJobStatusParseFailed, shared.StrPtr("parse failed: "+err.Error()))
-	}
-
-	comments := ValidateAndFilter(parsed, filteredFiles, reviewCtx.ExistingUnresolvedComments)
-	p.jobStore.UpdateAIOutput(ctx, job.ID, result.RawOutput, comments, result.IterationsUsed, result.TokensEstimated)
+	comments := ValidateAndFilter(aggregated.parsed, filteredFiles, reviewCtx.ExistingUnresolvedComments)
+	p.jobStore.UpdateAIOutput(ctx, job.ID, aggregated.rawOutput, comments, aggregated.totalIterations, aggregated.totalTokens)
 
 	if job.DryRun {
 		return p.jobStore.UpdateCompleted(ctx, job.ID, 0, 0)
@@ -260,7 +210,7 @@ func (p *Pipeline) Execute(ctx context.Context, job *shared.ReviewJob) error {
 		log.Info("auto-resolved fixed threads", "count", resolved)
 	}
 
-	summary := buildSummaryComment(posted, suppressed, len(comments), resolved, result, llmClient.ModelName(), lang)
+	summary := buildSummaryComment(posted, suppressed, len(comments), resolved, aggregated, llmClient.ModelName(), lang)
 	p.gitlabClient.PostThreadComment(ctx, job.GitLabProjectID, job.MrIID, summary)
 
 	p.jobStore.UpdateCompleted(ctx, job.ID, posted, suppressed)
@@ -282,8 +232,222 @@ func (p *Pipeline) Execute(ctx context.Context, job *shared.ReviewJob) error {
 
 	p.repoSettings.IncrementFeedbackCount(ctx, job.GitLabProjectID, posted)
 
-	log.Info("review completed", "posted", posted, "suppressed", suppressed, "iterations", result.IterationsUsed)
+	log.Info("review completed", "posted", posted, "suppressed", suppressed,
+		"iterations", aggregated.totalIterations, "chunks", aggregated.chunksUsed)
 	return nil
+}
+
+// aggregatedResult holds merged results from one or more agent chunks.
+type aggregatedResult struct {
+	parsed          *ParsedOutput
+	rawOutput       string
+	totalIterations int
+	totalTokens     int
+	chunksUsed      int
+	stopReason      string
+}
+
+// executeSingle runs the original single-agent review for small MRs.
+func (p *Pipeline) executeSingle(
+	ctx context.Context,
+	job *shared.ReviewJob,
+	filteredFiles []shared.DiffFile,
+	reviewCtx *shared.ReviewContext,
+	llmClient shared.LLMClient,
+	baseSHA string,
+	lang prompt.ResponseLanguage,
+) (*aggregatedResult, error) {
+	log := slog.With("job_id", job.ID.String())
+
+	repoPath := p.gitManager.RepoPath(job.GitLabProjectID)
+	toolCfg := p.cfg.Tool
+	toolCfg.BaseSHA = baseSHA
+	toolCfg.HeadSHA = job.HeadSHA
+	registry := tools.NewRegistry(repoPath, filteredFiles, toolCfg)
+
+	preloadedDiffs, allPreloaded := p.preloadDiffsForFiles(ctx, job.GitLabProjectID, filteredFiles, baseSHA, job.HeadSHA)
+
+	maxIter, softWarn := CalculateBudgetWithPreload(len(filteredFiles), preloadedDiffs != "")
+	log.Info("single-pass review", "files", len(filteredFiles),
+		"preloaded_bytes", len(preloadedDiffs), "all_preloaded", allPreloaded, "max_iterations", maxIter)
+
+	agentInput := reviewer.AgentInput{
+		Job:                  job,
+		ReviewCtx:            reviewCtx,
+		FilteredFiles:        filteredFiles,
+		DiffStatFormatted:    formatDiffStat(filteredFiles),
+		MaxIterations:        maxIter,
+		SoftWarnAt:           softWarn,
+		CompressionThreshold: p.cfg.LLM.CompressionThreshold,
+		Registry:             registry,
+		LLMClient:            llmClient,
+		PreloadedDiffs:       preloadedDiffs,
+		AllDiffsPreloaded:    allPreloaded,
+		ResponseLanguage:     lang,
+	}
+
+	result, err := p.agent.Run(ctx, agentInput)
+	if err != nil {
+		return nil, err
+	}
+
+	parsed, err := Parse(result.RawOutput)
+	if err != nil {
+		p.jobStore.UpdateAIOutput(ctx, job.ID, result.RawOutput, nil, result.IterationsUsed, result.TokensEstimated)
+		return nil, fmt.Errorf("parse failed: %w", err)
+	}
+
+	return &aggregatedResult{
+		parsed:          parsed,
+		rawOutput:       result.RawOutput,
+		totalIterations: result.IterationsUsed,
+		totalTokens:     result.TokensEstimated,
+		chunksUsed:      1,
+		stopReason:      result.StopReason,
+	}, nil
+}
+
+// executeChunked splits files into domain-grouped chunks and reviews them in parallel.
+func (p *Pipeline) executeChunked(
+	ctx context.Context,
+	job *shared.ReviewJob,
+	filteredFiles []shared.DiffFile,
+	reviewCtx *shared.ReviewContext,
+	llmClient shared.LLMClient,
+	baseSHA string,
+	lang prompt.ResponseLanguage,
+) (*aggregatedResult, error) {
+	log := slog.With("job_id", job.ID.String())
+
+	chunks := ChunkFiles(filteredFiles, p.cfg.Review.ChunkSize)
+	log.Info("chunked review started", "total_files", len(filteredFiles), "chunks", len(chunks))
+
+	type chunkResult struct {
+		result *reviewer.AgentResult
+		parsed *ParsedOutput
+		err    error
+	}
+
+	results := make([]chunkResult, len(chunks))
+	var wg sync.WaitGroup
+	sem := make(chan struct{}, p.cfg.Review.MaxParallelChunks)
+
+	for i, chunk := range chunks {
+		wg.Add(1)
+		go func(idx int, chunkFiles []shared.DiffFile) {
+			defer wg.Done()
+			sem <- struct{}{}
+			defer func() { <-sem }()
+
+			chunkLog := log.With("chunk", idx+1, "chunk_files", len(chunkFiles))
+			chunkLog.Info("chunk review started", "files", extractFilePaths(chunkFiles))
+
+			repoPath := p.gitManager.RepoPath(job.GitLabProjectID)
+			toolCfg := p.cfg.Tool
+			toolCfg.BaseSHA = baseSHA
+			toolCfg.HeadSHA = job.HeadSHA
+			registry := tools.NewRegistry(repoPath, chunkFiles, toolCfg)
+
+			// For chunks, always preload all diffs (chunks are small enough)
+			preloadedDiffs, allPreloaded := p.preloadDiffsForFiles(ctx, job.GitLabProjectID, chunkFiles, baseSHA, job.HeadSHA)
+
+			maxIter, softWarn := CalculateBudgetWithPreload(len(chunkFiles), preloadedDiffs != "")
+			chunkLog.Info("chunk budget", "max_iterations", maxIter,
+				"preloaded_bytes", len(preloadedDiffs), "all_preloaded", allPreloaded)
+
+			agentInput := reviewer.AgentInput{
+				Job:                  job,
+				ReviewCtx:            reviewCtx,
+				FilteredFiles:        chunkFiles,
+				DiffStatFormatted:    formatDiffStat(chunkFiles),
+				MaxIterations:        maxIter,
+				SoftWarnAt:           softWarn,
+				CompressionThreshold: p.cfg.LLM.CompressionThreshold,
+				Registry:             registry,
+				LLMClient:            llmClient,
+				PreloadedDiffs:       preloadedDiffs,
+				AllDiffsPreloaded:    allPreloaded,
+				ResponseLanguage:     lang,
+			}
+
+			result, err := p.agent.Run(ctx, agentInput)
+			if err != nil {
+				chunkLog.Error("chunk review failed", "error", err)
+				results[idx] = chunkResult{err: err}
+				return
+			}
+
+			parsed, err := Parse(result.RawOutput)
+			if err != nil {
+				chunkLog.Warn("chunk parse failed", "error", err)
+				// Store raw output but don't fail the whole review
+				results[idx] = chunkResult{result: result, err: nil, parsed: &ParsedOutput{}}
+				return
+			}
+
+			chunkLog.Info("chunk review completed",
+				"iterations", result.IterationsUsed, "findings", len(parsed.Reviews))
+			results[idx] = chunkResult{result: result, parsed: parsed}
+		}(i, chunk)
+	}
+
+	wg.Wait()
+
+	// Merge all chunk results
+	var allReviews []RawReview
+	var allRawOutputs []string
+	totalIterations := 0
+	totalTokens := 0
+	failedChunks := 0
+
+	for i, cr := range results {
+		if cr.err != nil {
+			log.Warn("chunk failed, skipping", "chunk", i+1, "error", cr.err)
+			failedChunks++
+			continue
+		}
+		if cr.parsed != nil {
+			allReviews = append(allReviews, cr.parsed.Reviews...)
+		}
+		if cr.result != nil {
+			allRawOutputs = append(allRawOutputs, cr.result.RawOutput)
+			totalIterations += cr.result.IterationsUsed
+			totalTokens += cr.result.TokensEstimated
+		}
+	}
+
+	if failedChunks == len(chunks) {
+		return nil, fmt.Errorf("all %d chunks failed", failedChunks)
+	}
+
+	log.Info("chunked review completed",
+		"total_findings", len(allReviews),
+		"total_iterations", totalIterations,
+		"total_tokens", totalTokens,
+		"failed_chunks", failedChunks,
+	)
+
+	stopReason := "chunked_complete"
+	if failedChunks > 0 {
+		stopReason = fmt.Sprintf("chunked_partial_%d_failed", failedChunks)
+	}
+
+	return &aggregatedResult{
+		parsed:          &ParsedOutput{Reviews: allReviews},
+		rawOutput:       strings.Join(allRawOutputs, "\n---\n"),
+		totalIterations: totalIterations,
+		totalTokens:     totalTokens,
+		chunksUsed:      len(chunks),
+		stopReason:      stopReason,
+	}, nil
+}
+
+// preloadDiffsForFiles preloads all diffs for a set of files, respecting size limits.
+func (p *Pipeline) preloadDiffsForFiles(ctx context.Context, projectID int64, files []shared.DiffFile, baseSHA, headSHA string) (string, bool) {
+	preloadMaxBytes := p.cfg.Review.PreloadDiffMaxKB * 1024
+	content, included := p.computePreloadedDiffs(ctx, projectID, files, baseSHA, headSHA, preloadMaxBytes)
+	allPreloaded := included == len(files)
+	return content, allPreloaded
 }
 
 // acquireAndFetch wraps git lock acquisition + fetch/checkout in a single
@@ -366,9 +530,10 @@ func formatDiffStat(files []shared.DiffFile) string {
 	var sb strings.Builder
 	for _, f := range files {
 		icon := "🟢"
-		if f.RiskTier == shared.RiskHigh {
+		switch f.RiskTier {
+		case shared.RiskHigh:
 			icon = "🔴"
-		} else if f.RiskTier == shared.RiskMedium {
+		case shared.RiskMedium:
 			icon = "🟡"
 		}
 		sb.WriteString(fmt.Sprintf("%s %s (+%d/-%d) [%s]\n", icon, f.Path, f.LinesAdded, f.LinesRemoved, f.RiskTier))
@@ -398,7 +563,7 @@ func SeverityBadge(s shared.CommentSeverity) string {
 	}
 }
 
-func buildSummaryComment(posted, suppressed, total, resolved int, result *reviewer.AgentResult, model string, lang prompt.ResponseLanguage) string {
+func buildSummaryComment(posted, suppressed, total, resolved int, result *aggregatedResult, model string, lang prompt.ResponseLanguage) string {
 	var sb strings.Builder
 	sb.WriteString("## AI Review Summary\n\n")
 
@@ -419,7 +584,10 @@ func buildSummaryComment(posted, suppressed, total, resolved int, result *review
 	}
 
 	sb.WriteString(fmt.Sprintf("- **Model:** %s\n", model))
-	sb.WriteString(fmt.Sprintf("- **Iterations:** %d (stop: %s)\n", result.IterationsUsed, result.StopReason))
+	if result.chunksUsed > 1 {
+		sb.WriteString(fmt.Sprintf("- **Chunks:** %d (parallel map-reduce)\n", result.chunksUsed))
+	}
+	sb.WriteString(fmt.Sprintf("- **Iterations:** %d (stop: %s)\n", result.totalIterations, result.stopReason))
 
 	if posted > 0 {
 		sb.WriteString(prompt.SummaryReplyHint(lang))

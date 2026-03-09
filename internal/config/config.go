@@ -75,6 +75,9 @@ type ReviewConfig struct {
 	PreloadDiffMaxKB     int    // max total KB of pre-injected diff content (default 100)
 	ResponseLanguage     string // "en" | "vi" | "ja" — language for AI-generated GitLab comments/replies
 	TriggerLabel         string // MR label that triggers review (default "ai-review")
+	ChunkSize            int    // target files per chunk for map-reduce review (default 10)
+	MaxParallelChunks    int    // max concurrent chunk reviews (default 5)
+	ChunkThreshold       int    // file count above which chunking is enabled (default 12)
 }
 
 type ToolConfig struct {
@@ -176,7 +179,7 @@ func Load() (*Config, error) {
 	cfg.LLM.GoogleAPIKeys = parseMultiKeys("GOOGLE_API_KEY", "GOOGLE_API_KEYS")
 	cfg.LLM.GoogleAPIKey = firstOrEmpty(cfg.LLM.GoogleAPIKeys)
 	cfg.LLM.ContextWindowSizes = defaultContextWindows
-	cfg.LLM.CompressionThreshold = envFloatOrDefault("LLM_CONTEXT_COMPRESSION_THRESHOLD", 0.80)
+	cfg.LLM.CompressionThreshold = envFloatOrDefault("LLM_CONTEXT_COMPRESSION_THRESHOLD", 0.55)
 
 	cfg.Worker.PoolSize = envIntOrDefault("WORKER_POOL_SIZE", 5)
 	cfg.Worker.PollIntervalMs = envIntOrDefault("WORKER_POLL_INTERVAL_MS", 500)
@@ -188,14 +191,17 @@ func Load() (*Config, error) {
 	cfg.Review.PreloadDiffMaxKB = envIntOrDefault("REVIEW_PRELOAD_DIFF_MAX_KB", 100)
 	cfg.Review.ResponseLanguage = envOrDefault("AI_RESPONSE_LANGUAGE", "en")
 	cfg.Review.TriggerLabel = envOrDefault("REVIEW_TRIGGER_LABEL", "ai-review")
+	cfg.Review.ChunkSize = envIntOrDefault("REVIEW_CHUNK_SIZE", 10)
+	cfg.Review.MaxParallelChunks = envIntOrDefault("REVIEW_MAX_PARALLEL_CHUNKS", 5)
+	cfg.Review.ChunkThreshold = envIntOrDefault("REVIEW_CHUNK_THRESHOLD", 12)
 
-	cfg.Tool.ReadFileMaxKB = envIntOrDefault("TOOL_READ_FILE_MAX_KB", 40)
-	cfg.Tool.SearchMaxResults = envIntOrDefault("TOOL_SEARCH_MAX_RESULTS", 50)
-	cfg.Tool.MultiDiffMaxFiles = envIntOrDefault("TOOL_MULTI_DIFF_MAX_FILES", 20)
-	cfg.Tool.MultiDiffMaxKB = envIntOrDefault("TOOL_MULTI_DIFF_MAX_KB", 80)
-	cfg.Tool.ReadMultiFileMaxFiles = envIntOrDefault("TOOL_READ_MULTI_FILE_MAX_FILES", 10)
-	cfg.Tool.ReadMultiFilePerFileKB = envIntOrDefault("TOOL_READ_MULTI_FILE_PER_FILE_MAX_KB", 20)
-	cfg.Tool.ToolResultMaxLines = envIntOrDefault("TOOL_RESULT_MAX_LINES", 80)
+	cfg.Tool.ReadFileMaxKB = envIntOrDefault("TOOL_READ_FILE_MAX_KB", 30)
+	cfg.Tool.SearchMaxResults = envIntOrDefault("TOOL_SEARCH_MAX_RESULTS", 20)
+	cfg.Tool.MultiDiffMaxFiles = envIntOrDefault("TOOL_MULTI_DIFF_MAX_FILES", 15)
+	cfg.Tool.MultiDiffMaxKB = envIntOrDefault("TOOL_MULTI_DIFF_MAX_KB", 60)
+	cfg.Tool.ReadMultiFileMaxFiles = envIntOrDefault("TOOL_READ_MULTI_FILE_MAX_FILES", 8)
+	cfg.Tool.ReadMultiFilePerFileKB = envIntOrDefault("TOOL_READ_MULTI_FILE_PER_FILE_MAX_KB", 15)
+	cfg.Tool.ToolResultMaxLines = envIntOrDefault("TOOL_RESULT_MAX_LINES", 60)
 
 	cfg.Cron.FeedbackConsolidateSchedule = envOrDefault("CRON_FEEDBACK_CONSOLIDATE_SCHEDULE", "0 2 * * 1")
 	cfg.Cron.FeedbackConsolidateMinCount = envIntOrDefault("FEEDBACK_CONSOLIDATE_MIN_COUNT", 30)

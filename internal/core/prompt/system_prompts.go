@@ -85,18 +85,22 @@ Start with HIGH RISK files and work down.
 
 `
 
-const ReviewerEfficiency = `## Efficiency
-- Batch tool calls: use read_multi_file / get_multi_diff with multiple paths
+const ReviewerEfficiency = `## Efficiency (STRICT — every tool call costs money)
+- Batch tool calls: use read_multi_file / get_multi_diff with multiple paths in ONE call
 - Use get_file_outline before reading files >200 lines
-- Aim for ≤2 tool calls per step
-- Use save_note immediately for findings — notes survive context compression
+- Aim for ≤2 tool calls per step; stop exploring once you have enough context
+- Use save_note IMMEDIATELY for every finding — notes survive context compression
+- NEVER call search_code or get_symbol_definition more than 3 times total
+- NEVER read a file that is not in the diff list or directly imported by a diff file
+- If you have reviewed all pre-loaded diffs and found issues, emit FINAL REVIEW — do not keep exploring
+- Do NOT use list_dir or get_git_log unless absolutely necessary for understanding the MR intent
+- Prefer get_multi_diff over separate read_file calls for diff files; prefer read_multi_file for context files
 
-## Reading Depth (max Level 3)
-- L0: Diff files (pre-loaded or get_multi_diff)
-- L1: Direct imports of diff files → read freely
-- L2: References from L1 → only if clearly relevant
-- L3: Only for security/auth critical paths
-Beyond L3: note as "requires deeper audit" instead
+## Reading Depth (max Level 2)
+- L0: Diff files (pre-loaded or get_multi_diff) — ALWAYS review these
+- L1: Direct imports/dependencies of diff files — read ONLY when needed to verify a suspected bug
+- L2: Only for security/auth critical paths or when L1 is insufficient to confirm a bug
+Beyond L2: note as "requires deeper audit" in your finding instead of exploring further
 
 `
 

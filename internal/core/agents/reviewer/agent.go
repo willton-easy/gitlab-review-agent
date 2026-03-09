@@ -15,7 +15,7 @@ import (
 
 const (
 	agentMaxTokens     = 4096
-	compressKeepRecent = 8
+	compressKeepRecent = 4
 )
 
 type Agent struct {

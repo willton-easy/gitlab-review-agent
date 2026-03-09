@@ -19,8 +19,8 @@ const ReviewerNoDiffsInstruction = "\nBegin your investigation. Start with HIGH 
 func BudgetWarning(iteration, max int) string {
 	return fmt.Sprintf(
 		"BUDGET WARNING: You have used %d/%d tool calls. "+
-			"If you have gathered sufficient information, emit '=== FINAL REVIEW ===' now. "+
-			"Otherwise, prioritize only the most critical remaining questions.",
+			"STOP exploring and emit '=== FINAL REVIEW ===' NOW with all findings collected so far. "+
+			"Only make 1 more tool call if you have a HIGH-confidence lead on a critical/high severity bug.",
 		iteration, max,
 	)
 }

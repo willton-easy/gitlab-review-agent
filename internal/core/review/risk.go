@@ -73,37 +73,41 @@ func ScoreRisk(file *shared.DiffFile) {
 }
 
 // CalculateBudget returns maxIterations and softWarnAt based on file count.
+// These are raw budgets for non-preloaded, non-chunked reviews.
 func CalculateBudget(fileCount int) (maxIter, softWarn int) {
 	switch {
 	case fileCount <= 3:
 		return 8, 6
 	case fileCount <= 8:
 		return 12, 9
-	case fileCount <= 20:
-		return 18, 13
-	case fileCount <= 50:
-		return 25, 19
+	case fileCount <= 15:
+		return 15, 11
+	case fileCount <= 30:
+		return 20, 15
 	default:
-		return 30, 22
+		return 25, 19
 	}
 }
 
-// CalculateBudgetWithPreload returns a reduced budget when diffs are pre-injected
-// into the user message, since fewer tool-call iterations are needed to fetch content.
+// CalculateBudgetWithPreload returns a tighter budget when diffs are pre-injected.
+// When all diffs are preloaded, the agent only needs tool calls for context exploration,
+// not for fetching diffs — so the budget can be significantly reduced.
 func CalculateBudgetWithPreload(fileCount int, diffsPreloaded bool) (maxIter, softWarn int) {
-	base, warn := CalculateBudget(fileCount)
 	if !diffsPreloaded {
-		return base, warn
+		return CalculateBudget(fileCount)
 	}
-	reduced := base - 3
-	if reduced < 4 {
-		reduced = 4
+	// With all diffs preloaded, the agent needs far fewer iterations.
+	// Each file needs at most ~0.5-1 tool calls for context, not 1-2 for fetching diffs.
+	switch {
+	case fileCount <= 3:
+		return 5, 3
+	case fileCount <= 8:
+		return 8, 5
+	case fileCount <= 15:
+		return 10, 7
+	default:
+		return 12, 9
 	}
-	warnReduced := warn - 2
-	if warnReduced < 3 {
-		warnReduced = 3
-	}
-	return reduced, warnReduced
 }
 
 // ShouldExclude checks if a file path matches any exclude pattern.

